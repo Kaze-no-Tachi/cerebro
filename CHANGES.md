@@ -1,6 +1,30 @@
 Cerebro Releases
 ------------
 
+### v0.10.0 - May 3rd, 2026
+
+First release of the modernized fork at https://github.com/Kaze-no-Tachi/cerebro.
+
+#### New features
+- Cluster product and version detection from `GET /` (Elasticsearch vs OpenSearch + major version), cached per host for 5 minutes
+- Compatibility headers for Elasticsearch 8 and 9 (`Accept` / `Content-type: application/vnd.elasticsearch+json; compatible-with=8`)
+- OpenSearch 2+ master-role rename: recognize the `cluster_manager` role as a master indicator and route `_cat/master` to `_cat/cluster_manager`
+- Documented connection guidance for TLS-secured clusters (Elasticsearch 8+ defaults)
+- `docker-compose.test.yml` harness covering ES 6.8 / 7.17 / 8.17 / 9.0 and OpenSearch 3.0
+- Integration test suite under `test/integration/`, gated on `CEREBRO_IT=1`
+- CI matrix job exercising the full target list
+
+#### Enhancements
+- Stack refresh: sbt 1.10.7, Scala 2.13.18, Play 2.9.10 (Akka → Pekko), play-slick 5.3.0, specs2 4.20.9
+- JDK 17 LTS as compile target with `-release:11` so artifacts remain JDK-11-runnable
+- Refresh sqlite-jdbc to 3.46.1.3 for CVE coverage
+- Deterministic shard ordering on the index overview so output is stable across play-json upgrades
+- CI bumped to JDK 17 + Node 18/20
+
+#### Compatibility
+- Elasticsearch 6.8, 7.x, 8.x, 9.x
+- OpenSearch 1.x, 2.x, 3.x
+
 ### v0.1.0 - July 14th, 2016
 
 First cerebro release.
