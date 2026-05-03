@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class HTTPElasticClient @Inject()(client: WSClient) extends ElasticClient {
+class HTTPElasticClient @Inject()(client: WSClient, metadataResolver: ClusterMetadataResolver) extends ElasticClient {
 
   def main(target: ElasticServer) =
     execute(s"", "GET", None, target)
@@ -306,7 +306,7 @@ class HTTPElasticClient @Inject()(client: WSClient) extends ElasticClient {
       case _: JsString => NdJsonContentType // if it's not a json, it is assumed that bulk or multi-search API is used
       case _ => JsonContentType
     }.toSeq
-    
+
     val body = data.map {
       case JsString(value) => value // needed to handle non valid json requests(multisearch, bulk...)
       case v: JsValue => v.toString
@@ -319,33 +319,55 @@ class HTTPElasticClient @Inject()(client: WSClient) extends ElasticClient {
                            body: Option[String] = None,
                            target: ElasticServer,
                            headers: Seq[(String, String)] = Seq()) = {
-    val authentication = target.host.authentication
-    val url = s"${target.host.name.replaceAll("/+$", "")}$uri"
+    metadataResolver.resolve(target).flatMap { md =>
+      val authentication = target.host.authentication
+      val url = s"${target.host.name.replaceAll("/+$", "")}$uri"
 
-    val mergedHeaders = headers ++ target.headers
+      val mergedHeaders = compatHeaders(md, headers) ++ target.headers
 
-    val request =
-      authentication.foldLeft(client.url(url).withMethod(method).withHttpHeaders(mergedHeaders: _*)) {
-      case (request, auth) =>
-        request.withAuth(auth.username, auth.password, WSAuthScheme.BASIC)
-    }
+      val request =
+        authentication.foldLeft(client.url(url).withMethod(method).withHttpHeaders(mergedHeaders: _*)) {
+        case (request, auth) =>
+          request.withAuth(auth.username, auth.password, WSAuthScheme.BASIC)
+      }
 
-    body.fold(request)(request.withBody((_))).execute().map { response =>
-      ElasticResponse(response)
+      body.fold(request)(request.withBody((_))).execute().map { response =>
+        ElasticResponse(response)
+      }
     }
   }
 
-  // FIXME: ES > 5.X does not support indices with special characters, so this could be removed
   private def encoded(text: String): String = URLEncoder.encode(text, "UTF-8")
 
   override def catMaster(target: ElasticServer): Future[ElasticResponse] = {
-    val path = "/_cat/master"
-    execute(s"$path?format=json", "GET", None, target)
+    metadataResolver.resolve(target).flatMap { md =>
+      val path = if (md.usesClusterManager) "/_cat/cluster_manager" else "/_cat/master"
+      execute(s"$path?format=json", "GET", None, target)
+    }
   }
 }
 
 object HTTPElasticClient {
-  val JsonContentType: (String, String) = ("Content-type", "application/json")
-
+  val JsonContentType:   (String, String) = ("Content-type", "application/json")
   val NdJsonContentType: (String, String) = ("Content-type", "application/x-ndjson")
+
+  /**
+    * For Elasticsearch 8.x and 9.x, set the REST API compatibility headers so the
+    * request is interpreted with the v8 wire format. OpenSearch and ES <= 7 take
+    * plain `application/json`. We only inject when the caller hasn't already set
+    * Accept / Content-type so a custom REST request is never overridden.
+    */
+  private[elastic] def compatHeaders(md: ClusterMetadata,
+                                     userHeaders: Seq[(String, String)]): Seq[(String, String)] = {
+    if (!md.isES8Plus) userHeaders
+    else {
+      val compatJson = "application/vnd.elasticsearch+json; compatible-with=8"
+      val rewritten = userHeaders.map {
+        case (name, _) if name.equalsIgnoreCase("Content-type") => ("Content-type", compatJson)
+        case other => other
+      }
+      if (userHeaders.exists(_._1.equalsIgnoreCase("Accept"))) rewritten
+      else ("Accept", compatJson) +: rewritten
+    }
+  }
 }
