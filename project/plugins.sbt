@@ -5,16 +5,14 @@ logLevel := Level.Warn
 resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.7")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.9.10")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-rjs" % "1.0.10")
+addSbtPlugin("com.github.sbt" % "sbt-digest" % "2.1.0")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-digest" % "1.1.4")
+addSbtPlugin("com.github.sbt" % "sbt-gzip" % "2.0.0")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-gzip" % "1.0.2")
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.10.4")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.0")
+addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.12.0")
 
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.10.0")
-
-libraryDependencies += "org.vafer" % "jdeb" % "1.8" artifacts (Artifact("jdeb", "jar", "jar"))
+libraryDependencies += "org.vafer" % "jdeb" % "1.10" artifacts (Artifact("jdeb", "jar", "jar"))

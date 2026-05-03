@@ -2,7 +2,6 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.ActorSystem
 import controllers.auth.{AuthAction, AuthenticationModule}
 import forms.LoginForm
 import play.api.Configuration
@@ -10,8 +9,7 @@ import play.api.mvc.InjectedController
 
 
 @Singleton
-class AuthController @Inject()(system: ActorSystem,
-                               authentication: AuthenticationModule,
+class AuthController @Inject()(authentication: AuthenticationModule,
                                configuration: Configuration)
   extends InjectedController {
 
@@ -53,7 +51,7 @@ class AuthController @Inject()(system: ActorSystem,
               }
             resp.withSession(AuthAction.SESSION_USER -> username)
           case None =>
-            Redirect(routes.AuthController.index()).flashing(LOGIN_MSG -> "Incorrect username or password")
+            Redirect(routes.AuthController.index).flashing(LOGIN_MSG -> "Incorrect username or password")
         }
       }
     )
