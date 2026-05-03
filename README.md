@@ -7,7 +7,26 @@ cerebro is an open source(MIT License) elasticsearch web admin tool built using 
 
 ### Requirements
 
-cerebro needs Java 11 or newer to run.
+cerebro needs Java 11 or newer to run (Java 17 LTS recommended).
+
+### Supported clusters
+
+cerebro talks to a wide range of cluster versions over the REST API:
+
+- Elasticsearch 6.8, 7.x, 8.x and 9.x
+- OpenSearch 1.x, 2.x and 3.x
+
+The product (Elasticsearch vs OpenSearch) and version are detected automatically from
+the cluster's root endpoint (`GET /`) on first connect and cached for 5 minutes.
+
+### Connecting to TLS-secured clusters
+
+Elasticsearch 8+ ships with TLS and Basic auth enabled by default. Point cerebro at
+`https://<host>:9200` and supply Basic credentials per-host in `conf/application.conf`.
+For self-signed or private-CA certs, either trust the cluster CA in the JVM truststore
+(`keytool -import -trustcacerts -file http_ca.crt -alias es -keystore $JAVA_HOME/lib/security/cacerts`)
+or set `play.ws.ssl.trustManager.stores` in `conf/application.conf` (a commented
+example is included).
 
 ### Installation
 - Download from [https://github.com/lmenezes/cerebro/releases](https://github.com/lmenezes/cerebro/releases)
