@@ -1,9 +1,14 @@
 Cerebro
 ------------
-[![Docker Pulls](https://img.shields.io/docker/pulls/lmenezes/cerebro.svg)](https://hub.docker.com/r/lmenezes/cerebro)
-![build](https://github.com/lmenezes/cerebro/workflows/build/badge.svg?branch=master)
+[![build](https://github.com/Kaze-no-Tachi/cerebro/actions/workflows/scala.yml/badge.svg?branch=main)](https://github.com/Kaze-no-Tachi/cerebro/actions/workflows/scala.yml)
+[![release](https://img.shields.io/github/v/release/Kaze-no-Tachi/cerebro?sort=semver)](https://github.com/Kaze-no-Tachi/cerebro/releases)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-cerebro is an open source(MIT License) elasticsearch web admin tool built using Scala, Play Framework, AngularJS and Bootstrap.
+cerebro is an open source (MIT License) elasticsearch web admin tool built using Scala, Play Framework, AngularJS and Bootstrap.
+
+### About this fork
+
+This repository is a maintained fork of [lmenezes/cerebro](https://github.com/lmenezes/cerebro), which has been dormant since v0.9.4 (April 2021). The fork was started to restore compatibility with modern clusters — Elasticsearch 8.x and 9.x, and OpenSearch 1.x through 3.x — and to refresh the underlying Scala / Play / JDK stack. See [CHANGES.md](CHANGES.md) for the v0.10.0 release notes.
 
 ### Requirements
 
@@ -16,45 +21,57 @@ cerebro talks to a wide range of cluster versions over the REST API:
 - Elasticsearch 6.8, 7.x, 8.x and 9.x
 - OpenSearch 1.x, 2.x and 3.x
 
-The product (Elasticsearch vs OpenSearch) and version are detected automatically from
-the cluster's root endpoint (`GET /`) on first connect and cached for 5 minutes.
+The product (Elasticsearch vs OpenSearch) and version are detected automatically from the cluster's root endpoint (`GET /`) on first connect and cached for 5 minutes.
 
 ### Connecting to TLS-secured clusters
 
-Elasticsearch 8+ ships with TLS and Basic auth enabled by default. Point cerebro at
-`https://<host>:9200` and supply Basic credentials per-host in `conf/application.conf`.
-For self-signed or private-CA certs, either trust the cluster CA in the JVM truststore
-(`keytool -import -trustcacerts -file http_ca.crt -alias es -keystore $JAVA_HOME/lib/security/cacerts`)
-or set `play.ws.ssl.trustManager.stores` in `conf/application.conf` (a commented
-example is included).
+Elasticsearch 8+ ships with TLS and Basic auth enabled by default. Point cerebro at `https://<host>:9200` and supply Basic credentials per-host in `conf/application.conf`. For self-signed or private-CA certs, either trust the cluster CA in the JVM truststore:
 
-### Installation
-- Download from [https://github.com/lmenezes/cerebro/releases](https://github.com/lmenezes/cerebro/releases)
-- Extract files
-- Run bin/cerebro(or bin/cerebro.bat if on Windows)
-- Access on http://localhost:9000
-
-### Chocolatey (Windows)
-
-You can install `cerebro` using [Chocolatey](https://chocolatey.org/):
-
-```sh
-choco install cerebro-es
+```
+keytool -import -trustcacerts -file http_ca.crt -alias es \
+  -keystore "$JAVA_HOME/lib/security/cacerts"
 ```
 
-Package creates windows service ```cerebro```.
-Access on http://localhost:9000
+…or set `play.ws.ssl.trustManager.stores` in `conf/application.conf` (a commented example block is included in the file).
 
-### Docker
+### Installation
 
-You can find the official docker images in the official [docker hub repo](https://hub.docker.com/r/lmenezes/cerebro/).
+#### Download a release
 
-Visit [cerebro-docker](https://github.com/lmenezes/cerebro-docker) for further information. 
+- Grab the latest `cerebro-<version>.zip` from [the Releases page](https://github.com/Kaze-no-Tachi/cerebro/releases)
+- Extract the archive
+- Run `bin/cerebro` (or `bin/cerebro.bat` on Windows)
+- Open <http://localhost:9000>
+
+#### Build from source
+
+```sh
+git clone https://github.com/Kaze-no-Tachi/cerebro.git
+cd cerebro
+sbt dist
+# Produces target/universal/cerebro-<version>.zip
+```
+
+#### Run via Docker (no host JDK required)
+
+There is no published docker image for this fork yet. The simplest way to run cerebro in a container against existing cluster fixtures is to mount a staged build into the official `eclipse-temurin` image:
+
+```sh
+sbt stage
+docker run -d --name cerebro -p 9000:9000 \
+  -v "$(pwd)/target/universal/stage:/app:ro" \
+  -w /app \
+  eclipse-temurin:17-jre \
+  bin/cerebro
+```
+
+> The `lmenezes/cerebro` Docker Hub image and the `cerebro-es` Chocolatey package both ship the original v0.9.4 build and **do not include the ES 8+ / OpenSearch support added in this fork.** A dedicated docker image for `Kaze-no-Tachi/cerebro` is on the roadmap.
 
 ### Configuration
 
 #### HTTP server address and port
-You can run cerebro listening on a different host and port(defaults to 0.0.0.0:9000):
+
+You can run cerebro listening on a different host and port (defaults to `0.0.0.0:9000`):
 
 ```
 bin/cerebro -Dhttp.port=1234 -Dhttp.address=127.0.0.1
@@ -62,19 +79,18 @@ bin/cerebro -Dhttp.port=1234 -Dhttp.address=127.0.0.1
 
 #### LDAP config
 
-LDAP can be configured using environment variables. If you typically run cerebro using docker,
-you can pass a file with all the env vars. The file would look like:
+LDAP can be configured using environment variables. If you typically run cerebro under Docker, pass a file with all the env vars. The file would look like:
 
 ```bash
 # Set it to ldap to activate ldap authorization
 AUTH_TYPE=ldap
 
 # Your ldap url
-LDAP_URL=ldap://exammple.com:389
+LDAP_URL=ldap://example.com:389
 
 LDAP_BASE_DN=OU=users,DC=example,DC=com
 
-# Usually method should  be "simple" otherwise, set it to the SASL mechanisms
+# Usually method should be "simple" otherwise, set it to the SASL mechanisms
 LDAP_METHOD=simple
 
 # user-template executes a string.format() operation where
@@ -103,23 +119,47 @@ LDAP_BIND_PWD=adminpass
 # AD example => memberOf=CN=mygroup,ou=ouofthegroup,DC=domain,DC=com
 # OpenLDAP example => CN=mygroup
 # LDAP_GROUP=memberOf=memberOf=CN=mygroup,ou=ouofthegroup,DC=domain,DC=com
-
 ```
 
-You can the pass this file as argument using:
+Pass the file to your container with `--env-file`:
 
 ```bash
- docker run -p 9000:9000 --env-file env-ldap  lmenezes/cerebro
+docker run -p 9000:9000 --env-file env-ldap \
+  -v "$(pwd)/target/universal/stage:/app:ro" \
+  -w /app \
+  eclipse-temurin:17-jre \
+  bin/cerebro
 ```
 
-There are some examples of configuration in the [examples folder](./examples).
+There are more examples of configuration in the [examples folder](./examples).
 
 #### Other settings
 
-Other settings are exposed through the **conf/application.conf** file found on the application directory.
+Other settings are exposed through the `conf/application.conf` file found in the application directory.
 
-It is also possible to use an alternate configuration file defined on a different location:
+It is also possible to use an alternate configuration file defined at a different location:
 
 ```
 bin/cerebro -Dconfig.file=/some/other/dir/alternate.conf
 ```
+
+### Development
+
+Run the tests:
+
+```sh
+sbt test
+```
+
+Run the integration suite against real ES + OpenSearch containers:
+
+```sh
+docker compose -f docker-compose.test.yml up -d --wait
+CEREBRO_IT=1 sbt 'testOnly *IT'
+```
+
+(Convenience scripts: [`bin/it.sh`](bin/it.sh) on macOS/Linux, [`bin/it.ps1`](bin/it.ps1) on Windows.)
+
+### License
+
+MIT — see [LICENSE](LICENSE). Original copyright (c) Leonardo Menezes; modifications under the same license in this fork.
