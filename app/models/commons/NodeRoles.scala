@@ -19,9 +19,9 @@ object NodeRoles {
     val dataRoles = Seq("data", "data_content", "data_hot", "data_warm", "data_cold").map(JsString)
 
     (nodeInfo \ "roles").asOpt[JsArray] match {
-      case Some(JsArray(roles)) => // >= 5.X
+      case Some(JsArray(roles)) => // >= 5.X (OpenSearch 2+ also exposes "cluster_manager")
         NodeRoles(
-          roles.contains(JsString("master")),
+          roles.contains(JsString("master")) || roles.contains(JsString("cluster_manager")),
           roles.exists(role => dataRoles.contains(role)),
           roles.contains(JsString("ingest"))
         )
