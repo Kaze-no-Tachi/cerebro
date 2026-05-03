@@ -24,3 +24,7 @@ activator-*.sbt
 node_modules
 cerebro.db
 *.log
+
+# Vue / Vite frontend build artifacts
+frontend/dist
+public/dist

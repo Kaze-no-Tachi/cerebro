@@ -160,6 +160,40 @@ CEREBRO_IT=1 sbt 'testOnly *IT'
 
 (Convenience scripts: [`bin/it.sh`](bin/it.sh) on macOS/Linux, [`bin/it.ps1`](bin/it.ps1) on Windows.)
 
+#### Working on the new (Vue 3) UI
+
+The legacy AngularJS UI continues to live at `/`. A Vue 3 + Vite + PrimeVue + Pinia rewrite is being assembled at [`frontend/`](frontend/) and mounted at `/next`. The two coexist during migration; once the new SPA reaches parity it will become the default and the AngularJS bundle will be removed.
+
+Backend API contract for both UIs: [`docs/api.md`](docs/api.md).
+
+To work on the new UI:
+
+```sh
+# In one shell, run the Play backend
+sbt run
+
+# In another shell, run the Vite dev server
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:5173/next/
+```
+
+Vite proxies API calls to the Play backend at `http://localhost:9000` (see [`frontend/vite.config.ts`](frontend/vite.config.ts)).
+
+For a production build of the new UI:
+
+```sh
+cd frontend
+npm run build
+# Copy the build output into the Play app's public/ directory so it gets
+# bundled by `sbt dist`:
+mkdir -p ../public/dist
+cp -r dist/* ../public/dist/
+```
+
+Then `sbt dist` produces the usual zip with the new SPA accessible at `/next`.
+
 ### License
 
 MIT — see [LICENSE](LICENSE). Original copyright (c) Leonardo Menezes; modifications under the same license in this fork.

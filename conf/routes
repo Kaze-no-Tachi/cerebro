@@ -89,6 +89,14 @@ POST        /auth/login                               controllers.AuthController
 POST        /auth/logout                              controllers.AuthController.logout
 GET         /login                                    controllers.AuthController.index
 
+# New Vue / PrimeVue SPA mounted at /next, served from public/dist/.
+# Asset routes precede the SPA fallback so hashed JS/CSS are served as files
+# rather than the HTML shell.
+GET         /next/assets/*file                        controllers.Assets.at(path="/public/dist/assets", file)
+GET         /next                                     controllers.Application.next(path: String = "")
+GET         /next/                                    controllers.Application.next(path: String = "")
+GET         /next/*path                               controllers.Application.next(path)
+
 # Map the JS resource paths
 GET         /public/*file                             controllers.Assets.at(path="/public", file)
 GET         /*file                                    controllers.Assets.versioned(path="/public", file: Asset)
