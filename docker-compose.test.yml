@@ -1,0 +1,71 @@
+services:
+  es68:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.23
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9268:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+
+  es717:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.27
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9217:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+
+  es8:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9280:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+
+  es9:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9290:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+
+  os3:
+    image: opensearchproject/opensearch:3.0.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9300:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
