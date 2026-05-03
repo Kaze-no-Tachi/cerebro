@@ -4,8 +4,9 @@ import elastic.{ClusterMetadataResolver, Distribution, HTTPElasticClient}
 import models.{ElasticServer, Host}
 import org.specs2.Specification
 import org.specs2.specification.AfterAll
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import play.api.test.WsTestClient
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
@@ -13,13 +14,15 @@ import scala.concurrent.{Await, ExecutionContext}
 /**
   * Integration test exercising HTTPElasticClient against real Elasticsearch and
   * OpenSearch containers brought up via docker-compose.test.yml. Gated on
-  * CEREBRO_IT=1; otherwise the spec is empty so plain `sbt test` is unaffected.
+  * CEREBRO_IT=1; otherwise the spec is a no-op so plain `sbt test` is unaffected.
   *
   * Run with:
   *   docker compose -f docker-compose.test.yml up -d --wait
   *   CEREBRO_IT=1 sbt 'testOnly *IT'
   */
 object HTTPElasticClientIT extends Specification with AfterAll {
+
+  private val enabled = sys.env.get("CEREBRO_IT").contains("1")
 
   private case class Target(name: String, url: String, expected: Distribution, expectedMajor: Int)
 
@@ -31,33 +34,22 @@ object HTTPElasticClientIT extends Specification with AfterAll {
     Target("os3",   "http://localhost:9300", Distribution.OpenSearch,    3)
   )
 
-  // WsTestClient.withClient spins up its own Pekko system + WSClient and tears
-  // it down when the lambda returns. We extract once via a thread-blocking
-  // promise so all examples share the same client and lifecycle.
-  private val (ws, shutdown): (WSClient, () => Unit) = {
-    val ref = new java.util.concurrent.atomic.AtomicReference[WSClient]()
-    val started = new java.util.concurrent.CountDownLatch(1)
-    val stop    = new java.util.concurrent.CountDownLatch(1)
-    val thread = new Thread(() => {
-      WsTestClient.withClient { client =>
-        ref.set(client)
-        started.countDown()
-        stop.await()
-      }
-    }, "cerebro-it-ws")
-    thread.setDaemon(true)
-    thread.start()
-    started.await(30, java.util.concurrent.TimeUnit.SECONDS)
-    (ref.get(), () => stop.countDown())
+  // Build a Play Application so we get a fully wired WSClient (with its own
+  // Pekko system + materializer) without having to assemble those pieces by
+  // hand. The application is stopped in afterAll().
+  private lazy val app: Application = new GuiceApplicationBuilder().build()
+  private lazy val ws: WSClient     = app.injector.instanceOf[WSClient]
+  private lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+
+  private lazy val resolver = new ClusterMetadataResolver(ws)(ec)
+  private lazy val client   = new HTTPElasticClient(ws, resolver)
+
+  override def afterAll(): Unit = if (enabled) {
+    Await.result(app.stop(), 30.seconds)
+    ()
   }
 
-  private implicit val ec: ExecutionContext = ExecutionContext.global
-  private val resolver = new ClusterMetadataResolver(ws)
-  private val client   = new HTTPElasticClient(ws, resolver)
-
-  override def afterAll(): Unit = shutdown()
-
-  def is = if (sys.env.get("CEREBRO_IT").contains("1")) {
+  def is = if (enabled) {
     s2"""
     HTTPElasticClient should
       identify es68 as Elasticsearch 6                ${verify(targets(0))}
