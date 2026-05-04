@@ -53,12 +53,22 @@ const filteredHistory = computed(() => {
 
 const responseText = computed(() => {
   if (!response.value) return ''
+  // _cat/* responses (e.g. _cat/nodes?v) arrive as plaintext wrapped in a
+  // JsString by the backend. Render those raw — JSON.stringify would escape
+  // every newline to "\n" and turn the table into one ugly line.
+  if (typeof response.value.body === 'string') return response.value.body
   try {
     return JSON.stringify(response.value.body, null, 2)
   } catch {
     return String(response.value.body)
   }
 })
+
+// Choose Monaco's language for the response pane based on body shape so that
+// cat plaintext doesn't get red squiggles from the JSON validator.
+const responseLanguage = computed(() =>
+  typeof response.value?.body === 'string' ? 'plaintext' : 'json',
+)
 
 const responseStatusSeverity = computed<'success' | 'warn' | 'danger' | 'secondary'>(() => {
   const s = response.value?.status ?? 0
@@ -240,7 +250,7 @@ const showHistory = ref(true)
         <MonacoEditor
           v-if="response"
           :model-value="responseText"
-          language="json"
+          :language="responseLanguage"
           read-only
           height="540px"
         />
