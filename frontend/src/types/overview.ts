@@ -25,6 +25,23 @@ export interface OverviewNode {
   attributes: Record<string, unknown>
 }
 
+export type ShardState =
+  | 'STARTED'
+  | 'INITIALIZING'
+  | 'RELOCATING'
+  | 'UNASSIGNED'
+  | 'RECOVERING'
+  | string
+
+export interface ShardInfo {
+  shard: number
+  state: ShardState
+  primary: boolean
+  node?: string | null
+  relocating_node?: string | null
+  index?: string
+}
+
 export interface OverviewIndex {
   name: string
   closed: boolean
@@ -37,7 +54,8 @@ export interface OverviewIndex {
   aliases: string[]
   num_shards?: number
   num_replicas?: number
-  shards?: Record<string, unknown>
+  // keyed by node ID; reserved key 'unassigned' holds shards not allocated to any node.
+  shards?: Record<string, ShardInfo[]>
 }
 
 export interface ClusterOverview {

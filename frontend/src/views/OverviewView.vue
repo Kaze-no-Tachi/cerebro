@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
-import ProgressBar from 'primevue/progressbar'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 
 import { useOverviewStore } from '@/stores/overview'
-import type { ClusterStatus, OverviewNode, OverviewIndex } from '@/types/overview'
+import type { ClusterStatus } from '@/types/overview'
 import { formatBytes, formatNumber } from '@/utils/format'
+import ShardMap from '@/components/ShardMap.vue'
 
 const REFRESH_MS = 30_000
 
@@ -40,20 +38,6 @@ function statusSeverity(status?: ClusterStatus) {
     case 'red':    return 'danger'
     default:       return 'secondary'
   }
-}
-
-function nodeRoles(n: OverviewNode): string[] {
-  const roles: string[] = []
-  if (n.master) roles.push('master')
-  if (n.data) roles.push('data')
-  if (n.ingest) roles.push('ingest')
-  if (n.coordinating) roles.push('coord')
-  return roles
-}
-
-function indexShardLabel(i: OverviewIndex) {
-  if (i.num_shards == null) return '—'
-  return `${i.num_shards} × ${i.num_replicas ?? 0}`
 }
 </script>
 
@@ -85,95 +69,14 @@ function indexShardLabel(i: OverviewIndex) {
       Failed to load cluster overview: {{ error }}
     </Message>
 
-    <template v-if="data">
-      <section class="card">
-        <h2>Nodes <span class="muted">({{ data.nodes.length }})</span></h2>
-        <DataTable :value="data.nodes" data-key="id" striped-rows size="small">
-          <Column field="name" header="Name" sortable>
-            <template #body="{ data: n }: { data: OverviewNode }">
-              <i v-if="n.current_master" class="pi pi-star-fill master-star" title="Current master" />
-              <span>{{ n.name }}</span>
-            </template>
-          </Column>
-          <Column field="ip" header="Address" sortable>
-            <template #body="{ data: n }: { data: OverviewNode }">
-              <code>{{ n.ip || n.host || '—' }}</code>
-            </template>
-          </Column>
-          <Column header="Roles">
-            <template #body="{ data: n }: { data: OverviewNode }">
-              <Tag v-for="r in nodeRoles(n)" :key="r" :value="r" severity="info" style="margin-right: 0.25rem" />
-            </template>
-          </Column>
-          <Column field="es_version" header="Version" sortable />
-          <Column header="Heap" style="min-width: 8rem">
-            <template #body="{ data: n }: { data: OverviewNode }">
-              <ProgressBar :value="n.heap.used_percent" :show-value="true" style="height: 0.875rem" />
-            </template>
-          </Column>
-          <Column header="Disk" style="min-width: 8rem">
-            <template #body="{ data: n }: { data: OverviewNode }">
-              <ProgressBar :value="n.disk.used_percent" :show-value="true" style="height: 0.875rem" />
-            </template>
-          </Column>
-          <Column header="CPU" style="width: 5rem">
-            <template #body="{ data: n }: { data: OverviewNode }">{{ n.cpu_percent }}%</template>
-          </Column>
-          <Column header="Load" style="width: 5rem">
-            <template #body="{ data: n }: { data: OverviewNode }">{{ n.load_average.toFixed(2) }}</template>
-          </Column>
-        </DataTable>
-      </section>
-
-      <section class="card">
-        <h2>Indices <span class="muted">({{ data.indices.length }})</span></h2>
-        <DataTable
-          :value="data.indices"
-          data-key="name"
-          striped-rows
-          size="small"
-          :paginator="data.indices.length > 25"
-          :rows="25"
-          :rows-per-page-options="[25, 50, 100]"
-        >
-          <Column header="" style="width: 1rem">
-            <template #body="{ data: i }: { data: OverviewIndex }">
-              <i v-if="i.unhealthy" class="pi pi-circle-fill" style="color: #f59e0b" title="Unhealthy" />
-              <i v-else-if="i.closed" class="pi pi-lock" title="Closed" />
-            </template>
-          </Column>
-          <Column field="name" header="Name" sortable>
-            <template #body="{ data: i }: { data: OverviewIndex }">
-              <code>{{ i.name }}</code>
-              <Tag v-if="i.special" value="system" severity="secondary" style="margin-left: 0.5rem" />
-            </template>
-          </Column>
-          <Column field="doc_count" header="Documents" sortable>
-            <template #body="{ data: i }: { data: OverviewIndex }">{{ formatNumber(i.doc_count) }}</template>
-          </Column>
-          <Column field="size_in_bytes" header="Primary size" sortable>
-            <template #body="{ data: i }: { data: OverviewIndex }">{{ formatBytes(i.size_in_bytes) }}</template>
-          </Column>
-          <Column field="total_size_in_bytes" header="Total size" sortable>
-            <template #body="{ data: i }: { data: OverviewIndex }">{{ formatBytes(i.total_size_in_bytes) }}</template>
-          </Column>
-          <Column header="Shards × Replicas">
-            <template #body="{ data: i }: { data: OverviewIndex }">{{ indexShardLabel(i) }}</template>
-          </Column>
-          <Column header="Aliases">
-            <template #body="{ data: i }: { data: OverviewIndex }">
-              <Tag
-                v-for="a in i.aliases"
-                :key="a"
-                :value="a"
-                severity="info"
-                style="margin-right: 0.25rem; margin-bottom: 0.125rem"
-              />
-            </template>
-          </Column>
-        </DataTable>
-      </section>
-    </template>
+    <ShardMap
+      v-if="data"
+      :indices="data.indices"
+      :nodes="data.nodes"
+      :unassigned-shards="data.unassigned_shards"
+      :relocating-shards="data.relocating_shards"
+      :initializing-shards="data.initializing_shards"
+    />
   </main>
 </template>
 
@@ -241,30 +144,5 @@ function indexShardLabel(i: OverviewIndex) {
   align-items: center;
   gap: 0.5rem;
   color: #6b7280;
-}
-
-.card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
-}
-
-.card h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.muted {
-  color: #6b7280;
-  font-weight: 400;
-  margin-left: 0.25rem;
-}
-
-.master-star {
-  color: #f59e0b;
-  margin-right: 0.4rem;
 }
 </style>
