@@ -22,14 +22,16 @@ export const useRestStore = defineStore('rest', () => {
     sendError.value = null
     response.value = null
     try {
-      // POST /rest/request expects { method, path, data }. The legacy UI
-      // always sends body as a string; we mirror that. ES handles
-      // null-body methods (GET/DELETE) gracefully.
-      const env = await connection.post<unknown>('/rest/request', {
+      // POST /rest/request expects { method, path, data? }. The backend
+      // controller treats a missing/null `data` as "no body" — useful for
+      // bare GET / DELETE requests (e.g. _cat/indices, _cluster/health)
+      // that should not carry a stale match_all payload from the editor.
+      const payload: Record<string, unknown> = {
         method: method.value,
         path: path.value,
-        data: body.value,
-      })
+      }
+      if (body.value.trim().length > 0) payload.data = body.value
+      const env = await connection.post<unknown>('/rest/request', payload)
       response.value = { status: env.status, body: env.body }
     } catch (e) {
       sendError.value = (e as Error).message
