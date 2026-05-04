@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { requiresConnection: true },
     },
     {
+      path: '/rest',
+      name: 'rest',
+      component: () => import('@/views/RestView.vue'),
+      meta: { requiresConnection: true },
+    },
+    {
       path: '/cat',
       name: 'cat',
       component: () => import('@/views/CatApiView.vue'),

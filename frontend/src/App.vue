@@ -24,6 +24,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Overview', icon: 'pi pi-th-large', to: '/overview' },
   { label: 'Nodes',    icon: 'pi pi-server',   to: '/nodes' },
+  { label: 'REST',     icon: 'pi pi-bolt',     to: '/rest' },
   { label: 'Cat APIs', icon: 'pi pi-list',     to: '/cat' },
 ]
 
