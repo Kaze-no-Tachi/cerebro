@@ -4,7 +4,7 @@ import { useConnectionStore } from '@/stores/connection'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/connect' },
+    { path: '/', redirect: '/overview' },
     {
       path: '/connect',
       name: 'connect',
@@ -16,11 +16,21 @@ const router = createRouter({
       component: () => import('@/views/OverviewView.vue'),
       meta: { requiresConnection: true },
     },
+    {
+      path: '/nodes',
+      name: 'nodes',
+      component: () => import('@/views/NodesView.vue'),
+      meta: { requiresConnection: true },
+    },
+    {
+      path: '/cat',
+      name: 'cat',
+      component: () => import('@/views/CatApiView.vue'),
+      meta: { requiresConnection: true },
+    },
   ],
 })
 
-// Routes flagged with `requiresConnection` redirect to /connect when no
-// cluster has been chosen yet.
 router.beforeEach((to: RouteLocationNormalized) => {
   if (to.meta.requiresConnection && !useConnectionStore().connected) {
     return { path: '/connect' }

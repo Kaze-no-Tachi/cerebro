@@ -22,3 +22,17 @@ export function formatPercent(n: number | null | undefined, digits = 0): string 
   if (n == null || isNaN(n)) return '—'
   return `${n.toFixed(digits)}%`
 }
+
+// "1d 4h 32m" for a millisecond duration. Used by the Nodes view to render
+// `uptime`, which the backend returns as raw ms.
+export function formatDuration(ms: number | null | undefined): string {
+  if (ms == null || isNaN(ms) || ms < 0) return '—'
+  const sec = Math.floor(ms / 1000)
+  const days = Math.floor(sec / 86400)
+  const hours = Math.floor((sec % 86400) / 3600)
+  const mins = Math.floor((sec % 3600) / 60)
+  if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${mins}m`
+  if (mins > 0) return `${mins}m`
+  return `${sec}s`
+}
